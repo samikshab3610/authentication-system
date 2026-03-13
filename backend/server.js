@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 
@@ -9,7 +10,10 @@ const app = express();
 app.use(express.json());
 
 // MongoDB connection
-mongoose.connect("mongodb+srv://samikshabhore7636_db_user:fBTjcQRYHOW1aPCu@cluster0.j7s1whx.mongodb.net/?appName=Cluster0")
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
 .then(() => console.log("MongoDB connected"))
 .catch(err => console.log(err));
 
@@ -23,6 +27,14 @@ app.post("/api/signup", async (req, res) => {
   const { name, email, password } = req.body;
 
   try {
+    const existingUser = await User.findOne({ email });
+
+    if (existingUser) {
+      return res.status(400).json({
+        message: "Email already registered",
+      });
+    }
+
     const newUser = new User({
       name,
       email,
@@ -34,6 +46,7 @@ app.post("/api/signup", async (req, res) => {
     res.json({
       message: "User saved to database"
     });
+
   } catch (error) {
     res.status(500).json({
       error: "Error saving user"
@@ -60,7 +73,7 @@ app.post("/api/login", (req, res) => {
 
 
 // start server
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
