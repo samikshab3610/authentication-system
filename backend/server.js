@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
 const User = require("./models/User");
 
@@ -10,12 +11,9 @@ const app = express();
 app.use(express.json());
 
 // MongoDB connection
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log("MongoDB connected"))
-.catch(err => console.log(err));
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch(err => console.log(err));
 
 // test route
 app.get("/api/test", (req, res) => {
@@ -35,10 +33,13 @@ app.post("/api/signup", async (req, res) => {
       });
     }
 
+    // hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const newUser = new User({
       name,
       email,
-      password
+      password: hashedPassword
     });
 
     await newUser.save();
@@ -55,21 +56,37 @@ app.post("/api/signup", async (req, res) => {
 });
 
 // LOGIN ROUTE
-app.post("/api/login", (req, res) => {
+app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
 
-  if (!email || !password) {
-    return res.status(400).json({
-      error: "Email and password are required",
+  try {
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(400).json({
+        message: "User not found"
+      });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return res.status(400).json({
+        message: "Invalid password"
+      });
+    }
+
+    res.json({
+      message: "Login successful"
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      error: "Server error"
     });
   }
-
-  res.json({
-    message: "Login successful",
-    email,
-  });
 });
-
 
 
 // start server
