@@ -2,12 +2,15 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const cors = require("cors");
+const jwt  = require("jsonwebtoken");
 
 const User = require("./models/User");
 
 const app = express();
 
 // middleware to read JSON
+app.use(cors());
 app.use(express.json());
 
 // MongoDB connection
@@ -22,6 +25,8 @@ app.get("/api/test", (req, res) => {
 
 // SIGNUP ROUTE
 app.post("/api/signup", async (req, res) => {
+   console.log("Request received");   
+   console.log(req.body);   // 👈 ADD THIS
   const { name, email, password } = req.body;
 
   try {
@@ -44,6 +49,8 @@ app.post("/api/signup", async (req, res) => {
 
     await newUser.save();
 
+    console.log("User saved successfully");
+
     res.json({
       message: "User saved to database"
     });
@@ -60,7 +67,7 @@ app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
 
   try {
-
+    // cheack if user exist
     const user = await User.findOne({ email });
 
     if (!user) {
@@ -69,6 +76,7 @@ app.post("/api/login", async (req, res) => {
       });
     }
 
+    // compare password
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
@@ -76,6 +84,13 @@ app.post("/api/login", async (req, res) => {
         message: "Invalid password"
       });
     }
+
+    // create token
+    const token = jwt.sign(
+      { userID: user._id},
+      "secretkey",
+      {expiresIn: "1h"}
+    );
 
     res.json({
       message: "Login successful"
