@@ -3,7 +3,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const cors = require("cors");
-const jwt  = require("jsonwebtoken");
+const jwt = require("jsonwebtoken");
 
 const User = require("./models/User");
 
@@ -25,12 +25,18 @@ app.get("/api/test", (req, res) => {
 
 // SIGNUP ROUTE
 app.post("/api/signup", async (req, res) => {
-   console.log("Request received");   
-   console.log(req.body);   // 👈 ADD THIS
+  console.log("Request received");
+  console.log(req.body);   // 👈 ADD THIS
   const { name, email, password } = req.body;
 
   try {
     const existingUser = await User.findOne({ email });
+
+    if (!email || !password) {
+      return res.status(400).json({
+        message: "All fields are required"
+      });
+    }
 
     if (existingUser) {
       return res.status(400).json({
@@ -87,13 +93,14 @@ app.post("/api/login", async (req, res) => {
 
     // create token
     const token = jwt.sign(
-      { userID: user._id},
-      "secretkey",
-      {expiresIn: "1h"}
+      { userID: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
     );
 
     res.json({
-      message: "Login successful"
+      message: "Login successful",
+      token
     });
 
   } catch (error) {
