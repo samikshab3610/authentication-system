@@ -1,4 +1,29 @@
- document.getElementById("loginForm").addEventListener("submit", async function (e) {
+async function handleGoogleSignIn(response) {
+  try {
+    const res = await fetch("http://localhost:5000/api/auth/google", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ credential: response.credential })
+    });
+
+    const data = await res.json();
+
+    if (data.token) {
+      localStorage.setItem("token", data.token);
+      window.location.href = "dashboard.html";
+    } else {
+      alert(data.message || "Google sign-in failed");
+    }
+
+  } catch (err) {
+    console.log(err);
+    alert("Something went wrong");
+  }
+}
+
+document.getElementById("loginForm").addEventListener("submit", async function (e) {
             e.preventDefault();
 
             try {

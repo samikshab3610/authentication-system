@@ -4,6 +4,7 @@
 <head>
     <title>Login</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 
 <body>
@@ -18,8 +19,14 @@
             <input type="password" id="password" placeholder="Password" required autocomplete="off"><br><br>
             <span class="eye" onclick="togglePassword()">👁️</span>
         </div>
-        
+
         <button type="submit">Login</button>
+
+        <div id="g_id_onload" 
+            data-client_id="227383636194-uromu2ldfmjtnqiph9rb03phc5sgsvr4.apps.googleusercontent.com" 
+            data-callback="handleGoogleSignIn">
+        </div>
+        <div class="g_id_signin" data-type="standard"></div>
 
         <p>Don't have an account? <a href="signup.html">Signup</a></p>
     </form>

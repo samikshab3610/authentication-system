@@ -4,10 +4,12 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
+const { OAuth2Client } = require("google-auth-library");
 
 const User = require("./models/User");
 
 const app = express();
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // middleware to read JSON
 app.use(cors());
@@ -107,6 +109,52 @@ app.post("/api/login", async (req, res) => {
     res.status(500).json({
       error: "Server error"
     });
+  }
+});
+
+app.post("/api/auth/google", async (req, res) => {
+  const { credential } = req.body;
+
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+
+    const payload = ticket.getPayload();
+    const { sub: googleId, email, name } = payload;
+
+    // check if this email already exists in our database
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      // brand new user — create them
+      user = new User({
+        name,
+        email,
+        googleId
+      });
+      await user.save();
+      console.log("New Google user created:", email);
+    } else {
+      console.log("Existing user logged in via Google:", email);
+    }
+
+    // create the same kind of JWT your normal login uses
+    const token = jwt.sign(
+      { userID: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    res.json({
+      message: "Login successful",
+      token
+    });
+
+  } catch (error) {
+    console.log(error);
+    res.status(401).json({ message: "Google sign-in failed" });
   }
 });
 
