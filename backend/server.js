@@ -6,7 +6,10 @@ const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const { OAuth2Client } = require("google-auth-library");
 
+
 const User = require("./models/User");
+const generateOTP = require("./utils/otp");
+const sendOTPEmail = require("./utils/sendEmail");
 
 const app = express();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -28,7 +31,7 @@ app.get("/api/test", (req, res) => {
 // SIGNUP ROUTE
 app.post("/api/signup", async (req, res) => {
   console.log("Request received");
-  console.log(req.body);   // 👈 ADD THIS
+  console.log({ name: req.body.name, email: req.body.email });
   const { name, email, password } = req.body;
 
   try {
@@ -49,24 +52,83 @@ app.post("/api/signup", async (req, res) => {
     // hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // generate OTP and hash it too (same idea as hashing the password)
+    const otp = generateOTP();
+    const hashedOtp = await bcrypt.hash(otp, 10);
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+
     const newUser = new User({
       name,
       email,
-      password: hashedPassword
+      password: hashedPassword,
+      otp: hashedOtp,
+      otpExpiry
     });
 
     await newUser.save();
 
-    console.log("User saved successfully");
+    console.log("User saved successfully, sending OTP");
+
+    await sendOTPEmail(email, otp);
 
     res.json({
-      message: "User saved to database"
+      message: "OTP sent to email",
+      email: newUser.email
     });
 
   } catch (error) {
+    console.log(error);
     res.status(500).json({
       error: "Error saving user"
     });
+  }
+});
+
+// VERIFY OTP
+app.post("/api/verify-otp", async (req, res) => {
+  const { email, otp } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(400).json({ message: "User not found" });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ message: "Account already verified" });
+    }
+
+    if (!user.otp || !user.otpExpiry || user.otpExpiry < new Date()) {
+      return res.status(400).json({ message: "OTP expired. Please request a new one" });
+    }
+
+    const isMatch = await bcrypt.compare(otp, user.otp);
+
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    user.isVerified = true;
+    user.otp = null;
+    user.otpExpiry = null;
+    await user.save();
+
+    // log them in immediately after verifying, same as a normal login
+    const token = jwt.sign(
+      { userID: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    res.json({
+      message: "Email verified successfully",
+      token
+    });
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: "Server error" });
   }
 });
 

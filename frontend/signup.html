@@ -23,11 +23,22 @@
 
     <button type="submit">Signup</button>
 
-    <div id="g_id_onload" 
-        data-client_id="227383636194-uromu2ldfmjtnqiph9rb03phc5sgsvr4.apps.googleusercontent.com" 
+    <div class="signinwithgoogle_otp">
+
+      <div id="g_id_onload" data-client_id="227383636194-uromu2ldfmjtnqiph9rb03phc5sgsvr4.apps.googleusercontent.com"
         data-callback="handleGoogleSignIn">
+      </div>
+      <div class="g_id_signin" data-type="standard"></div>
+
+      <div class="divider">or</div>
+
+      <div class="verifyotp">
+        <a href="verify-otp.html" class="otp-icon-btn">
+          📩 Verify with OTP
+        </a>
+      </div>
+
     </div>
-    <div class="g_id_signin" data-type="standard"></div>
 
     <p>Already have an account? <a href="login.html">Login</a></p>
   </form>

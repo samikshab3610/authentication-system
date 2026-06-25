@@ -43,13 +43,14 @@ document.getElementById("signupForm").addEventListener("submit", async function 
 
     console.log(data);
 
-    if (data.message === "User registered successfully" || data.message === "User saved to database") {
+    if (data.message === "OTP sent to email") {
       document.getElementById("signupForm").reset();
-      alert("Signup successful! Please login.");
+      localStorage.setItem("pendingEmail", data.email);
+      alert("Account created! Please log in, then verify your email using the code we sent.");
       window.location.href = "login.html";
     } else {
       document.getElementById("signupForm").reset();
-      alert(data.error || "Signup failed");
+      alert(data.message || data.error || "Signup failed");
     }
 
   } catch (err) {
